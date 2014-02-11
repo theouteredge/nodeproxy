@@ -10,8 +10,11 @@ http.createServer(function(request, response) {
     }
     else {
         response.write("I see your trying to use my proxy environment :)");
-        response.end();
+        request.pipe(request(request.url)).pipe(response);
     }
+}).listen(8000)
+
+    
 
 }).listen(port);
 
