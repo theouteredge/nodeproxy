@@ -1,10 +1,17 @@
 var http = require('http');
 var port = process.env.port || 8080;
+var self = 'nodeproxy.azurewebsites.net';
 
 http.createServer(function(request, response) {
     
-    response.write("Hello World!!");
-    response.end();
+    if (request.headers['host'] == self) {
+        response.write("Hello World!!");
+        response.end();
+    }
+    else {
+        response.write("I see your trying to use my proxy environment :)");
+        response.end();
+    }
 
 }).listen(port);
 
