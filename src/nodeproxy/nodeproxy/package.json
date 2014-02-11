@@ -1,0 +1,10 @@
+{
+  "name": "nodeproxy",
+  "version": "0.0.0",
+  "description": "nodeproxy",
+  "main": "server.js",
+  "author": {
+    "name": "Andrew.Long",
+    "email": ""
+  }
+}
