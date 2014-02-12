@@ -1,17 +1,43 @@
 var http = require('http');
 var net  = require('net');
 var urlp = require('url');
+var fs   = require('fs');
 
 var port = process.env.port || 1337;
 var debug = process.env.debug || true;
-var self = 'nodeproxy.azurewebsites.net';
+//var self = 'nodeproxy.azurewebsites.net';
+var self = 'localhost:1337';
 
 
 var server = http.createServer(function(request, response) {
-    if (debug) console.log('connection estabilished');
+    if (debug) {
+        console.log('connection estabilished');
+        console.log('request host is %s', request.headers['host']);
+    }
 
     if (request.headers['host'] == self) {
-        response.write("Hello World!!");
+        var url = urlp.parse(request.url);
+        var path = "";
+        if (url.pathname === null || url.pathname === "" || url.pathname === "/")
+            path = "./content/index.html";
+        else
+            path = "./content/" + url.pathname;
+
+        console.log(url);
+        console.log(path);
+
+        fs.readFile(path, 'utf8', function (err,data) {
+            if (err) {
+                response.writeHead(500);
+                response.write("<h1>500 Error</h1>\r\n" +
+                               "<p>Error was <pre>" + err + "</pre></p>\r\n" +
+                               "</body></html>\r\n");
+            }
+
+            response.writeHead(200);
+            response.write(data);
+        });
+
         response.end();
     }
     else {
