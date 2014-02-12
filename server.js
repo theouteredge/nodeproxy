@@ -4,9 +4,9 @@ var urlp = require('url');
 var fs   = require('fs');
 
 var port = process.env.port || 1337;
-var debug = process.env.debug || true;
-//var self = 'nodeproxy.azurewebsites.net';
-var self = 'localhost:1337';
+var debug = process.env.debug || false;
+var self = 'nodeproxy.azurewebsites.net';
+//var self = 'localhost:1337';
 
 
 var server = http.createServer(function(request, response) {
