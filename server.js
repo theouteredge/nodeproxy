@@ -3,42 +3,49 @@ var net  = require('net');
 var urlp = require('url');
 var fs   = require('fs');
 
-var port = process.env.port || 1337;
+var port  = process.env.port || 1337;
 var debug = process.env.debug || false;
 var self = 'nodeproxy.azurewebsites.net';
-//var self = 'localhost:1337';
+//var self  = 'localhost:1337';
+//var self  = 'localhost:1944';
 
 
-var server = http.createServer(function(request, response) {
-    if (debug) {
-        console.log('connection estabilished');
-        console.log('request host is %s', request.headers['host']);
+var renderLocalContent = function(path, response) {
+    var filepath = "";
+    if (path === null || path === "" || path === "/")
+        filepath = __dirname + "\\content\\index.html";
+    else {
+        filepath = __dirname + "\\content\\" + path.substring(1).replace('/', "\\");
     }
 
-    if (request.headers['host'] == self) {
-        var url = urlp.parse(request.url);
-        var path = "";
-        if (url.pathname === null || url.pathname === "" || url.pathname === "/")
-            path = "./content/index.html";
-        else
-            path = "./content/" + url.pathname;
-
-        console.log(url);
-        console.log(path);
-
-        fs.readFile(path, 'utf8', function (err,data) {
-            if (err) {
-                response.writeHead(500);
-                response.write("<h1>500 Error</h1>\r\n" +
-                               "<p>Error was <pre>" + err + "</pre></p>\r\n" +
-                               "</body></html>\r\n");
-            }
+    fs.readFile(filepath, 'utf8', function (err, data) {
+        if (err) {
+            response.writeHead(500);
+            response.write("<html><body><h1>500 Error</h1>\r\n" +
+                            "<p>Error was <pre>" + err + "</pre></p>\r\n" +
+                            "</body></html>\r\n");
+        }
+        else {
+            console.log('local content:');
+            console.log(data);
 
             response.writeHead(200);
             response.write(data);
-        });
+        }
 
         response.end();
+    });
+};
+
+
+var server = http.createServer(function(request, response) {
+//    if (debug) {
+        console.log('HTTP connection will connect to %s', request.headers['host']);
+//    }
+
+    if (request.headers['host'] == self) {
+        var url = urlp.parse(request.url);
+        renderLocalContent(url.pathname, response);
     }
     else {
         var url = urlp.parse(request.url);
@@ -82,12 +89,12 @@ var server = http.createServer(function(request, response) {
                 proxyRequest.write(chunk, 'binary');
             });
         request.on('end', function() {
-                console.log('  > closing proxy connection as client connection has closed');
+                if (debug) console.log('  > closing proxy connection as client connection has closed');
                 proxyRequest.end();
             }); 
     }
 }).listen(port);
-console.log('server is listening on port %s', port);
+if (debug) console.log('server is listening on port %s', port);
 
 
 
@@ -95,50 +102,50 @@ server.on('connect', function ( request, socketRequest, bodyhead ) {
     var httpVersion = request['httpVersion'];
     var url = urlp.parse('https://' + request['url']);
 
-    console.log('  = will connect to %s', url.hostname);
-    console.log('  = will connect to %s', url.port || 443);
+    if (debug) console.log('HTTPS connection will connect to %s', url.hostname);
+    if (debug) console.log('  = will connect to %s', url.port || 443);
  
     // set up TCP connection
     var proxySocket = new net.Socket();
     proxySocket.connect(url.port || 443, url.hostname, function () {
-        console.log( '  < connected to %s/%s', url.hostname, url.port);
-        console.log( '  > writing head of length %d', bodyhead.length );
+        if (debug) console.log( '  < connected to %s/%s', url.hostname, url.port);
+        if (debug) console.log( '  > writing head of length %d', bodyhead.length );
  
-        proxySocket.write( bodyhead );
+        proxySocket.write(bodyhead);
  
         // tell the caller the connection was successfully established
         socketRequest.write( "HTTP/" + httpVersion + " 200 Connection established\r\n\r\n" );
     });
  
     proxySocket.on('data', function (chunk) {
-        console.log( '  < data length = %d', chunk.length );
+        if (debug) console.log( '  < data length = %d', chunk.length );
         socketRequest.write( chunk );
     });
  
     proxySocket.on('end', function () {
-        console.log( '  < end' );
+        if (debug) console.log( '  < end' );
         socketRequest.end();
     });
  
     socketRequest.on('data', function ( chunk ) {
-        console.log( '  > data length = %d', chunk.length ); 
+        if (debug) console.log( '  > data length = %d', chunk.length ); 
         proxySocket.write( chunk );
     });
  
     socketRequest.on('end', function () {
-        console.log( '  > end' );
+        if (debug) console.log( '  > end' );
         proxySocket.end();
     });
  
     proxySocket.on('error', function ( err ) {
         socketRequest.write( "HTTP/" + httpVersion + " 500 Connection error\r\n\r\n" );
-        console.log( '  < ERR: %s', err );
+        if (debug) console.log( '  < ERR: %s', err );
       
         socketRequest.end();
     });
  
     socketRequest.on('error', function ( err ) {
-        console.log( '  > ERR: %s', err );
+        if (debug) console.log( '  > ERR: %s', err );
         proxySocket.end();
     });
  }); // HTTPS connect listener
